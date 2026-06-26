@@ -60,10 +60,13 @@ jobs:
       - run: flutter pub get
       - run: flutter config --enable-windows-desktop
       - run: flutter build windows --release
+      - name: Package into a zip
+        shell: pwsh
+        run: Compress-Archive -Path build/windows/x64/runner/Release/* -DestinationPath Reticula-windows-x64.zip
       - uses: actions/upload-artifact@v4
         with:
           name: Reticula-windows
-          path: build/windows/x64/runner/Release/
+          path: Reticula-windows-x64.zip
 
   linux:
     name: Build Linux
@@ -89,3 +92,25 @@ jobs:
         with:
           name: Reticula-linux
           path: Reticula-linux-x64.tar.gz
+
+  # On a tag push (vX.Y.Z), attach the three builds to a GitHub Release.
+  release:
+    name: Release
+    needs: [macos, windows, linux]
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download all build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: |
+            artifacts/Reticula-macos/Reticula-macos.zip
+            artifacts/Reticula-windows/Reticula-windows-x64.zip
+            artifacts/Reticula-linux/Reticula-linux-x64.tar.gz

@@ -171,8 +171,17 @@ dart run tool/sample_export.dart /output/dir
 and pull request:
 
 - **test** — `flutter analyze` + `flutter test`
-- **macos / windows / linux** — `flutter build` per platform, uploading the app
-  as a build artifact (`.zip`, `Release/` folder and `.tar.gz` respectively).
+- **macos / windows / linux** — `flutter build` per platform, uploading each app
+  as a build artifact (`Reticula-macos.zip`, `Reticula-windows-x64.zip`,
+  `Reticula-linux-x64.tar.gz`).
+
+Pushing a tag like `v1.0.0` additionally publishes a **GitHub Release** with the
+three builds attached:
+
+```bash
+git tag v1.0.0
+git push origin v1.0.0
+```
 
 Flutter is pinned to a fixed version for reproducible builds.
 
