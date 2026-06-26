@@ -8,6 +8,8 @@ Reticula is in early alpha; it will aim to follow
 
 ## [Unreleased]
 
+## [0.1.1-alpha]
+
 ### Added
 
 - Web build — Reticula now runs in the browser (experimental), with a live demo
