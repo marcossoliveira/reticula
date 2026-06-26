@@ -1,5 +1,5 @@
-/// The main editor screen: a light top bar, a dark workspace canvas with the
-/// sheet preview, and a slim print-hint footer.
+/// The Print Layout editor: a top bar (back, paper/orientation/grid, export),
+/// a dark workspace canvas with the sheet preview, and a print-hint footer.
 library;
 
 import 'dart:io';
@@ -7,34 +7,41 @@ import 'dart:io';
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 
+import '../../l10n/app_localizations.dart';
 import '../core/document.dart';
-import '../core/presets.dart';
+import '../core/grid.dart';
+import '../core/paper.dart';
+import '../export/export_format.dart';
 import '../export/pdf_exporter.dart';
-import '../export/png_exporter.dart';
+import '../export/raster_exporter.dart';
 import 'document_controller.dart';
 import 'theme.dart';
 import 'widgets/sheet_preview.dart';
 
 class EditorPage extends StatefulWidget {
-  final DocumentController controller;
-
-  const EditorPage({super.key, required this.controller});
+  const EditorPage({super.key});
 
   @override
   State<EditorPage> createState() => _EditorPageState();
 }
 
 class _EditorPageState extends State<EditorPage> {
+  late final DocumentController controller = DocumentController();
   bool _busy = false;
 
-  DocumentController get controller => widget.controller;
-
   static const _imageTypes = XTypeGroup(
-    label: 'Imagens',
+    label: 'Images',
     extensions: ['jpg', 'jpeg', 'png', 'heic', 'heif', 'webp', 'bmp', 'gif'],
   );
 
+  @override
+  void dispose() {
+    controller.dispose();
+    super.dispose();
+  }
+
   Future<void> _importToSlot(String slotId) async {
+    final l10n = AppLocalizations.of(context);
     try {
       final file = await openFile(acceptedTypeGroups: const [_imageTypes]);
       if (file == null) return;
@@ -42,62 +49,41 @@ class _EditorPageState extends State<EditorPage> {
       await controller.setSlotImage(
           slotId: slotId, path: file.path, bytes: bytes);
     } catch (e) {
-      _snack('Falha ao importar imagem: $e');
+      _snack(l10n.importFailed('$e'));
     }
   }
 
-  Future<void> _exportPdf() async {
-    await _runExport(
-      suggestedName: 'reticula_a4.pdf',
-      typeGroup: const XTypeGroup(label: 'PDF', extensions: ['pdf']),
-      build: () =>
-          PdfExporter.build(controller.document, controller.resolvedImages()),
-      successLabel: 'PDF',
-    );
-  }
-
-  Future<void> _exportPng() async {
-    await _runExport(
-      suggestedName: 'reticula_a4_300dpi.png',
-      typeGroup: const XTypeGroup(label: 'PNG', extensions: ['png']),
-      build: () => PngExporter.build(
-          controller.document, controller.resolvedImages(),
-          dpi: 300),
-      successLabel: 'PNG (300 DPI)',
-    );
-  }
-
-  Future<void> _runExport({
-    required String suggestedName,
-    required XTypeGroup typeGroup,
-    required Future<List<int>> Function() build,
-    required String successLabel,
-  }) async {
+  Future<void> _export(ExportFormat format) async {
     if (_busy) return;
+    final l10n = AppLocalizations.of(context);
+    final formatName = format.fileExtension.toUpperCase();
     setState(() => _busy = true);
     try {
-      final bytes = await build();
+      final doc = controller.document;
+      final images = controller.resolvedImages();
+      final List<int> bytes;
+      switch (format) {
+        case ExportFormat.pdf:
+          bytes = await PdfExporter.build(doc, images);
+        case ExportFormat.png:
+          bytes = await RasterExporter.png(doc, images, dpi: 300);
+        case ExportFormat.jpeg:
+          bytes = await RasterExporter.jpeg(doc, images, dpi: 300);
+      }
       final location = await getSaveLocation(
-        acceptedTypeGroups: [typeGroup],
-        suggestedName: suggestedName,
+        acceptedTypeGroups: [
+          XTypeGroup(label: formatName, extensions: [format.fileExtension]),
+        ],
+        suggestedName: format.defaultName,
       );
       if (location == null) return;
       await File(location.path).writeAsBytes(bytes);
-      _snack('$successLabel salvo em ${location.path}');
+      _snack(l10n.savedTo(formatName, location.path));
     } catch (e) {
-      _snack('Falha ao exportar $successLabel: $e');
+      _snack(l10n.exportFailed(formatName, '$e'));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
-  }
-
-  void _setOrientation(PageOrientation orientation) {
-    if (orientation == controller.document.page.orientation) return;
-    controller.applyPreset(
-      orientation == PageOrientation.landscape
-          ? presetA4TwoA5Landscape
-          : presetA4TwoA5Portrait,
-    );
   }
 
   void _snack(String message) {
@@ -118,12 +104,11 @@ class _EditorPageState extends State<EditorPage> {
         builder: (context, _) {
           return Column(
             children: [
-              _TopBar(
+              _EditorBar(
+                controller: controller,
                 busy: _busy,
-                orientation: controller.document.page.orientation,
-                onOrientation: _setOrientation,
-                onExportPdf: _exportPdf,
-                onExportPng: _exportPng,
+                onBack: () => Navigator.of(context).maybePop(),
+                onExport: _export,
               ),
               Expanded(
                 child: DecoratedBox(
@@ -140,7 +125,7 @@ class _EditorPageState extends State<EditorPage> {
                   ),
                 ),
               ),
-              const _FooterHint(),
+              const _PrintHint(),
             ],
           );
         },
@@ -151,46 +136,62 @@ class _EditorPageState extends State<EditorPage> {
 
 // --- Top bar -----------------------------------------------------------------
 
-class _TopBar extends StatelessWidget {
+class _EditorBar extends StatelessWidget {
+  final DocumentController controller;
   final bool busy;
-  final PageOrientation orientation;
-  final void Function(PageOrientation orientation) onOrientation;
-  final VoidCallback onExportPdf;
-  final VoidCallback onExportPng;
+  final VoidCallback onBack;
+  final void Function(ExportFormat format) onExport;
 
-  const _TopBar({
+  const _EditorBar({
+    required this.controller,
     required this.busy,
-    required this.orientation,
-    required this.onOrientation,
-    required this.onExportPdf,
-    required this.onExportPng,
+    required this.onBack,
+    required this.onExport,
   });
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+
     return Container(
       decoration: const BoxDecoration(
         color: RColors.chrome,
         border: Border(bottom: BorderSide(color: RColors.chromeBorder)),
       ),
-      padding: const EdgeInsets.fromLTRB(20, 12, 16, 12),
+      padding: const EdgeInsets.fromLTRB(12, 10, 16, 10),
       child: Wrap(
         alignment: WrapAlignment.spaceBetween,
         crossAxisAlignment: WrapCrossAlignment.center,
         spacing: 16,
         runSpacing: 10,
         children: [
-          const _Brand(),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              IconButton(
+                onPressed: onBack,
+                tooltip: l10n.allTools,
+                icon: const Icon(Icons.arrow_back_rounded, color: RColors.ink),
+              ),
+              const SizedBox(width: 4),
+              Text(
+                l10n.toolPrintLayoutTitle,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: RColors.ink,
+                ),
+              ),
+            ],
+          ),
           Wrap(
             crossAxisAlignment: WrapCrossAlignment.center,
             spacing: 8,
             runSpacing: 8,
             children: [
-              _OrientationSelector(
-                orientation: orientation,
-                busy: busy,
-                onChanged: onOrientation,
-              ),
+              _PaperMenu(controller: controller),
+              _OrientationSelector(controller: controller),
+              _GridMenu(controller: controller),
               if (busy)
                 const Padding(
                   padding: EdgeInsets.symmetric(horizontal: 6),
@@ -200,19 +201,7 @@ class _TopBar extends StatelessWidget {
                     child: CircularProgressIndicator(strokeWidth: 2),
                   ),
                 ),
-              FilledButton.icon(
-                onPressed: busy ? null : onExportPdf,
-                icon: const Icon(Icons.picture_as_pdf_outlined, size: 18),
-                label: const Text('Exportar PDF'),
-              ),
-              Tooltip(
-                message: 'Exportar PNG em 300 DPI',
-                child: OutlinedButton.icon(
-                  onPressed: busy ? null : onExportPng,
-                  icon: const Icon(Icons.image_outlined, size: 18),
-                  label: const Text('PNG 300 DPI'),
-                ),
-              ),
+              _ExportMenu(label: l10n.export, onExport: onExport),
             ],
           ),
         ],
@@ -221,100 +210,190 @@ class _TopBar extends StatelessWidget {
   }
 }
 
-class _Brand extends StatelessWidget {
-  const _Brand();
+/// An outlined, menu-opening control showing "Label  Value ⌄".
+class _ControlChip extends StatelessWidget {
+  final String label;
+  final String value;
+
+  const _ControlChip({required this.label, required this.value});
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: 34,
-          height: 34,
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [RColors.accent, RColors.accentDark],
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+      decoration: BoxDecoration(
+        border: Border.all(color: RColors.chromeBorder),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(label, style: const TextStyle(fontSize: 12, color: RColors.muted)),
+          const SizedBox(width: 6),
+          Text(
+            value,
+            style: const TextStyle(
+              fontSize: 13.5,
+              fontWeight: FontWeight.w600,
+              color: RColors.ink,
             ),
-            borderRadius: BorderRadius.circular(9),
-            boxShadow: [
-              BoxShadow(
-                color: RColors.accent.withValues(alpha: 0.35),
-                blurRadius: 10,
-                offset: const Offset(0, 3),
-              ),
-            ],
           ),
-          child: const Icon(Icons.grid_view_rounded, color: Colors.white, size: 18),
-        ),
-        const SizedBox(width: 10),
-        const Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Reticula',
-              style: TextStyle(
-                fontSize: 17,
-                fontWeight: FontWeight.w700,
-                color: RColors.ink,
-                height: 1.05,
-              ),
+          const SizedBox(width: 2),
+          const Icon(Icons.expand_more_rounded, size: 18, color: RColors.muted),
+        ],
+      ),
+    );
+  }
+}
+
+class _PaperMenu extends StatelessWidget {
+  final DocumentController controller;
+
+  const _PaperMenu({required this.controller});
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return PopupMenuButton<PaperSize>(
+      tooltip: l10n.paper,
+      onSelected: controller.setPaper,
+      itemBuilder: (context) => [
+        for (final p in paperSizes)
+          PopupMenuItem(
+            value: p,
+            child: Text(
+              '${p.name}   ·   ${p.widthMm.toStringAsFixed(0)} × ${p.heightMm.toStringAsFixed(0)} mm',
             ),
-            Text(
-              'layouts de impressão',
-              style: TextStyle(fontSize: 11, color: RColors.muted, height: 1.1),
-            ),
-          ],
-        ),
+          ),
       ],
+      child: _ControlChip(label: l10n.paper, value: controller.paper.name),
+    );
+  }
+}
+
+class _GridMenu extends StatelessWidget {
+  final DocumentController controller;
+
+  const _GridMenu({required this.controller});
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return PopupMenuButton<GridSpec>(
+      tooltip: l10n.grid,
+      onSelected: controller.setGrid,
+      itemBuilder: (context) => [
+        for (final g in gridOptions)
+          PopupMenuItem(
+            value: g,
+            child: Text('${g.label}   ·   ${g.count}'),
+          ),
+      ],
+      child: _ControlChip(label: l10n.grid, value: controller.grid.label),
     );
   }
 }
 
 class _OrientationSelector extends StatelessWidget {
-  final PageOrientation orientation;
-  final bool busy;
-  final void Function(PageOrientation orientation) onChanged;
+  final DocumentController controller;
 
-  const _OrientationSelector({
-    required this.orientation,
-    required this.busy,
-    required this.onChanged,
-  });
+  const _OrientationSelector({required this.controller});
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return SegmentedButton<PageOrientation>(
       showSelectedIcon: false,
-      segments: const [
+      segments: [
         ButtonSegment(
           value: PageOrientation.landscape,
-          icon: Icon(Icons.crop_landscape_outlined, size: 18),
-          label: Text('Paisagem'),
+          icon: const Icon(Icons.crop_landscape_outlined, size: 18),
+          label: Text(l10n.orientationLandscape),
         ),
         ButtonSegment(
           value: PageOrientation.portrait,
-          icon: Icon(Icons.crop_portrait_outlined, size: 18),
-          label: Text('Retrato'),
+          icon: const Icon(Icons.crop_portrait_outlined, size: 18),
+          label: Text(l10n.orientationPortrait),
         ),
       ],
-      selected: {orientation},
-      onSelectionChanged:
-          busy ? null : (selection) => onChanged(selection.first),
+      selected: {controller.orientation},
+      onSelectionChanged: (selection) =>
+          controller.setOrientation(selection.first),
     );
   }
 }
 
-// --- Footer ------------------------------------------------------------------
+class _ExportMenu extends StatelessWidget {
+  final String label;
+  final void Function(ExportFormat format) onExport;
 
-class _FooterHint extends StatelessWidget {
-  const _FooterHint();
+  const _ExportMenu({required this.label, required this.onExport});
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return PopupMenuButton<ExportFormat>(
+      tooltip: l10n.exportAs,
+      onSelected: onExport,
+      itemBuilder: (context) => [
+        PopupMenuItem(
+          value: ExportFormat.pdf,
+          child: _formatRow(Icons.picture_as_pdf_outlined, l10n.formatPdf),
+        ),
+        PopupMenuItem(
+          value: ExportFormat.png,
+          child: _formatRow(Icons.image_outlined, l10n.formatPng),
+        ),
+        PopupMenuItem(
+          value: ExportFormat.jpeg,
+          child: _formatRow(Icons.photo_outlined, l10n.formatJpeg),
+        ),
+      ],
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.primary,
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.ios_share_rounded, size: 18, color: Colors.white),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w600,
+                fontSize: 13.5,
+              ),
+            ),
+            const SizedBox(width: 2),
+            const Icon(Icons.expand_more_rounded, size: 18, color: Colors.white),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _formatRow(IconData icon, String text) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 18, color: RColors.ink),
+        const SizedBox(width: 10),
+        Text(text),
+      ],
+    );
+  }
+}
+
+class _PrintHint extends StatelessWidget {
+  const _PrintHint();
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Container(
       width: double.infinity,
       decoration: const BoxDecoration(
@@ -322,15 +401,15 @@ class _FooterHint extends StatelessWidget {
         border: Border(top: BorderSide(color: RColors.chromeBorder)),
       ),
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 9),
-      child: const Row(
+      child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.print_outlined, size: 14, color: RColors.muted),
-          SizedBox(width: 8),
+          const Icon(Icons.print_outlined, size: 14, color: RColors.muted),
+          const SizedBox(width: 8),
           Flexible(
             child: Text(
-              'Imprima em escala 100%, sem "ajustar à página" e com impressão sem borda se a impressora suportar.',
-              style: TextStyle(fontSize: 12, color: RColors.muted),
+              l10n.printHint,
+              style: const TextStyle(fontSize: 12, color: RColors.muted),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),

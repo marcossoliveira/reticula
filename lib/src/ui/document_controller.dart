@@ -1,6 +1,8 @@
-/// Editor state. A thin [ChangeNotifier] over the immutable [ReticulaDocument]:
-/// the UI mutates framing through these methods, the model stays the source of
-/// truth, and every framing change is re-clamped through the [LayoutEngine].
+/// Editor state. A thin [ChangeNotifier] over the immutable [ReticulaDocument].
+///
+/// The document is rebuilt from a (paper, orientation, grid) spec whenever any
+/// of those change; imported photos are preserved into slots that still exist
+/// and their framing is reset to the default cover fit.
 library;
 
 import 'dart:ui' as ui;
@@ -9,10 +11,12 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/painting.dart' show decodeImageFromList;
 
 import '../core/document.dart';
+import '../core/document_builder.dart';
 import '../core/geometry.dart';
+import '../core/grid.dart';
 import '../core/layout_engine.dart';
+import '../core/paper.dart';
 import '../core/placed_image.dart';
-import '../core/presets.dart';
 import '../export/resolved_image.dart';
 
 /// An image loaded into memory for preview + export.
@@ -31,17 +35,31 @@ class LoadedAsset {
 }
 
 class DocumentController extends ChangeNotifier {
+  PaperSize _paper;
+  PageOrientation _orientation;
+  GridSpec _grid;
   ReticulaDocument _document;
 
   /// Loaded image bytes, keyed by [PlacedImage.id].
   final Map<String, LoadedAsset> _assets = {};
 
-  DocumentController(this._document);
-
-  factory DocumentController.fromPreset(ReticulaPreset preset) =>
-      DocumentController(preset.build());
+  DocumentController({
+    PaperSize? paper,
+    PageOrientation? orientation,
+    GridSpec? grid,
+  })  : _paper = paper ?? kDefaultPaper,
+        _orientation = orientation ?? kDefaultOrientation,
+        _grid = grid ?? kDefaultGrid,
+        _document = buildDocument(
+          paper: paper ?? kDefaultPaper,
+          orientation: orientation ?? kDefaultOrientation,
+          grid: grid ?? kDefaultGrid,
+        );
 
   ReticulaDocument get document => _document;
+  PaperSize get paper => _paper;
+  PageOrientation get orientation => _orientation;
+  GridSpec get grid => _grid;
 
   bool get hasAnyImage => _document.images.isNotEmpty;
 
@@ -55,28 +73,34 @@ class DocumentController extends ChangeNotifier {
         for (final entry in _assets.entries) entry.key: entry.value.toResolved(),
       };
 
-  /// Replaces the current preset/document, dropping all loaded images.
-  void loadPreset(ReticulaPreset preset) {
-    _document = preset.build();
-    _assets.clear();
-    notifyListeners();
+  void setPaper(PaperSize paper) {
+    if (paper.id == _paper.id) return;
+    _paper = paper;
+    _rebuild();
   }
 
-  /// Switches to [preset]. By default keeps any imported photos, re-placing each
-  /// into the slot with the same id and resetting its framing to the default
-  /// cover fit (the new slot usually has a very different aspect ratio).
-  void applyPreset(ReticulaPreset preset, {bool keepImages = true}) {
-    final next = preset.build();
-    if (!keepImages) {
-      _document = next;
-      _assets.clear();
-      notifyListeners();
-      return;
-    }
+  void setOrientation(PageOrientation orientation) {
+    if (orientation == _orientation) return;
+    _orientation = orientation;
+    _rebuild();
+  }
 
-    var doc = next;
+  void setGrid(GridSpec grid) {
+    if (grid.sameAs(_grid)) return;
+    _grid = grid;
+    _rebuild();
+  }
+
+  /// Regenerates the document for the current spec, preserving photos into
+  /// matching slot ids with default (cover) framing.
+  void _rebuild() {
+    var doc = buildDocument(
+      paper: _paper,
+      orientation: _orientation,
+      grid: _grid,
+    );
     final retained = <String, LoadedAsset>{};
-    for (final slot in next.slots) {
+    for (final slot in doc.slots) {
       final asset = _assets['img-${slot.id}'];
       if (asset == null) continue;
       doc = doc.withImage(PlacedImage(
@@ -86,7 +110,6 @@ class DocumentController extends ChangeNotifier {
       ));
       retained['img-${slot.id}'] = asset;
     }
-
     _document = doc;
     _assets
       ..clear()

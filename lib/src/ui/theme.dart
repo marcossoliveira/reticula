@@ -3,6 +3,14 @@ library;
 
 import 'package:flutter/material.dart';
 
+/// Product/suite name.
+const String kAppName = 'Reticula';
+
+/// Open-source project repository and author.
+const String kRepoUrl = 'https://github.com/marcossoliveira/reticula';
+const String kAuthorName = 'Marcos Oliveira';
+const String kAuthorUrl = 'https://github.com/marcossoliveira';
+
 /// Reticula colour palette. Light "chrome" (top bar + footer) framing a dark
 /// workspace canvas, so the white sheet and the photos stand out.
 class RColors {

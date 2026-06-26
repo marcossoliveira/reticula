@@ -7,6 +7,8 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import 'package:reticula_app/l10n/app_localizations.dart';
+
 import '../../core/document.dart';
 import '../document_controller.dart';
 import 'slot_view.dart';
@@ -45,7 +47,7 @@ class SheetPreview extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              _SheetLabel(page: doc.page),
+              _SheetLabel(paperName: controller.paper.name, page: doc.page),
               const SizedBox(height: 12),
               Container(
                 width: sheetW,
@@ -94,19 +96,23 @@ class SheetPreview extends StatelessWidget {
 }
 
 class _SheetLabel extends StatelessWidget {
+  final String paperName;
   final PageSpec page;
 
-  const _SheetLabel({required this.page});
+  const _SheetLabel({required this.paperName, required this.page});
 
   @override
   Widget build(BuildContext context) {
-    final orient =
-        page.orientation == PageOrientation.landscape ? 'PAISAGEM' : 'RETRATO';
+    final l10n = AppLocalizations.of(context);
+    final orient = (page.orientation == PageOrientation.landscape
+            ? l10n.orientationLandscape
+            : l10n.orientationPortrait)
+        .toUpperCase();
     final w = page.widthMm.toStringAsFixed(0);
     final h = page.heightMm.toStringAsFixed(0);
 
     return Text(
-      'A4 $orient  ·  $w × $h mm',
+      '$paperName  ·  $orient  ·  $w × $h mm',
       style: TextStyle(
         color: Colors.white.withValues(alpha: 0.72),
         fontSize: 12.5,

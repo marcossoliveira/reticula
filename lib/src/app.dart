@@ -1,11 +1,14 @@
-/// The Reticula application widget: theme + the single editor screen.
+/// The Reticula application widget: theme, localization, and locale state.
+///
+/// Reticula is a small suite; the app opens on a tool launcher (home screen),
+/// and each tool (currently only Print Layout) is pushed as its own screen.
 library;
 
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 
-import 'core/presets.dart';
-import 'ui/document_controller.dart';
-import 'ui/editor_page.dart';
+import '../l10n/app_localizations.dart';
+import 'ui/home_screen.dart';
 import 'ui/theme.dart';
 
 class ReticulaApp extends StatefulWidget {
@@ -16,23 +19,29 @@ class ReticulaApp extends StatefulWidget {
 }
 
 class _ReticulaAppState extends State<ReticulaApp> {
-  // The MVP opens directly on the primary preset.
-  late final DocumentController _controller =
-      DocumentController.fromPreset(presetA4TwoA5Landscape);
+  /// null = follow the system locale.
+  Locale? _locale;
 
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
+  void _setLocale(Locale? locale) => setState(() => _locale = locale);
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Reticula',
+      onGenerateTitle: (context) => kAppName,
       debugShowCheckedModeBanner: false,
       theme: buildReticulaTheme(),
-      home: EditorPage(controller: _controller),
+      locale: _locale,
+      localizationsDelegates: const [
+        AppLocalizations.delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: AppLocalizations.supportedLocales,
+      home: HomeScreen(
+        locale: _locale,
+        onLocaleChanged: _setLocale,
+      ),
     );
   }
 }

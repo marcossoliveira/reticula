@@ -2,9 +2,12 @@ import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:reticula_app/src/core/document.dart';
+import 'package:reticula_app/src/core/document_builder.dart';
 import 'package:reticula_app/src/core/geometry.dart';
+import 'package:reticula_app/src/core/grid.dart';
+import 'package:reticula_app/src/core/paper.dart';
 import 'package:reticula_app/src/core/placed_image.dart';
-import 'package:reticula_app/src/core/presets.dart';
 import 'package:reticula_app/src/export/pdf_exporter.dart';
 import 'package:reticula_app/src/export/resolved_image.dart';
 
@@ -16,13 +19,17 @@ void main() {
   test('PDF export builds a real PDF from the document model', () async {
     final bytes = base64Decode(_onePxPngBase64);
 
-    final doc = presetA4TwoA5Landscape.build().withImage(
-          const PlacedImage(
-            id: 'img-slot-1',
-            slotId: 'slot-1',
-            imagePath: 'memory',
-          ),
-        );
+    final doc = buildDocument(
+      paper: paperA4,
+      orientation: PageOrientation.landscape,
+      grid: const GridSpec(2, 1),
+    ).withImage(
+      const PlacedImage(
+        id: 'img-slot-1',
+        slotId: 'slot-1',
+        imagePath: 'memory',
+      ),
+    );
 
     final pdf = await PdfExporter.build(doc, {
       'img-slot-1': ResolvedImage(bytes: bytes, size: const PixelSize(1, 1)),

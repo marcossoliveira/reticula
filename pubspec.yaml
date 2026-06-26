@@ -42,6 +42,14 @@ dependencies:
   printing: ^5.13.0
   # Native open/save dialogs for importing images and saving exports.
   file_selector: ^1.0.0
+  # Raster image encoding (JPEG export) + sample-image dev tooling.
+  image: ^4.9.0
+  # Localization message formatting.
+  intl: any
+  flutter_localizations:
+    sdk: flutter
+  # Open the project's GitHub repository / author profile in the browser.
+  url_launcher: ^6.3.0
 
 dev_dependencies:
   flutter_test:
@@ -54,14 +62,14 @@ dev_dependencies:
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
 
-  # Used only by tool/sample_export.dart to synthesize test images.
-  image: ^4.9.0
-
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
 
 # The following section is specific to Flutter packages.
 flutter:
+
+  # Generate localization classes from lib/l10n/*.arb (see l10n.yaml).
+  generate: true
 
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in

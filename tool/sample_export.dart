@@ -14,9 +14,12 @@ import 'dart:typed_data';
 
 import 'package:image/image.dart' as img;
 
+import 'package:reticula_app/src/core/document.dart';
+import 'package:reticula_app/src/core/document_builder.dart';
 import 'package:reticula_app/src/core/geometry.dart';
+import 'package:reticula_app/src/core/grid.dart';
+import 'package:reticula_app/src/core/paper.dart';
 import 'package:reticula_app/src/core/placed_image.dart';
-import 'package:reticula_app/src/core/presets.dart';
 import 'package:reticula_app/src/core/units.dart';
 import 'package:reticula_app/src/export/pdf_exporter.dart';
 import 'package:reticula_app/src/export/resolved_image.dart';
@@ -76,8 +79,11 @@ Future<void> main(List<String> args) async {
     label: 'FOTO 2 - 1200x1800 retrato',
   );
 
-  final doc = presetA4TwoA5Landscape
-      .build()
+  final doc = buildDocument(
+    paper: paperA4,
+    orientation: PageOrientation.landscape,
+    grid: const GridSpec(2, 1),
+  )
       .withImage(const PlacedImage(
           id: 'img-slot-1', slotId: 'slot-1', imagePath: 'memory-1'))
       .withImage(const PlacedImage(

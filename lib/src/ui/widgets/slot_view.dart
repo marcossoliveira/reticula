@@ -9,6 +9,8 @@ library;
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
+import 'package:reticula_app/l10n/app_localizations.dart';
+
 import '../../core/layout_engine.dart';
 import '../../core/slot.dart';
 import '../document_controller.dart';
@@ -111,6 +113,7 @@ class _SlotPlaceholder extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final accent = hover;
     return GestureDetector(
       onTap: onTap,
@@ -150,7 +153,7 @@ class _SlotPlaceholder extends StatelessWidget {
                 ),
                 const SizedBox(height: 14),
                 Text(
-                  'Importar Foto $index',
+                  l10n.importPhoto(index),
                   style: const TextStyle(
                     fontSize: 14.5,
                     fontWeight: FontWeight.w600,
@@ -158,9 +161,9 @@ class _SlotPlaceholder extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 3),
-                const Text(
-                  'Clique para escolher',
-                  style: TextStyle(fontSize: 11.5, color: RColors.muted),
+                Text(
+                  l10n.clickToChoose,
+                  style: const TextStyle(fontSize: 11.5, color: RColors.muted),
                 ),
               ],
             ),
@@ -180,6 +183,7 @@ class _SlotControls extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Container(
       decoration: BoxDecoration(
         color: Colors.black.withValues(alpha: 0.55),
@@ -197,13 +201,13 @@ class _SlotControls extends StatelessWidget {
         children: [
           _IconAction(
             icon: Icons.swap_horiz_rounded,
-            tooltip: 'Trocar foto',
+            tooltip: l10n.swapPhoto,
             onTap: onSwap,
           ),
           Container(width: 1, height: 20, color: Colors.white24),
           _IconAction(
             icon: Icons.restart_alt_rounded,
-            tooltip: 'Redefinir enquadramento',
+            tooltip: l10n.resetFraming,
             onTap: onReset,
           ),
         ],
