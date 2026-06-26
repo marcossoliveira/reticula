@@ -69,7 +69,12 @@ See [ROADMAP.md](ROADMAP.md) for the bigger picture and
 
 ## Screenshots
 
-Screenshots will be added soon.
+| Tool launcher | Print Layout |
+|:---:|:---:|
+| ![Reticula home screen](docs/screenshots/home.png) | ![Reticula Print Layout editor](docs/screenshots/editor.png) |
+
+> Early alpha — sample images shown. The interface follows your system language
+> (English shown here).
 
 ## Tech stack
 
