@@ -2,7 +2,7 @@
 /// a dark workspace canvas with the sheet preview, and a print-hint footer.
 library;
 
-import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
@@ -12,6 +12,7 @@ import '../core/document.dart';
 import '../core/grid.dart';
 import '../core/paper.dart';
 import '../export/export_format.dart';
+import '../export/file_saver.dart';
 import '../export/pdf_exporter.dart';
 import '../export/raster_exporter.dart';
 import 'document_controller.dart';
@@ -61,7 +62,7 @@ class _EditorPageState extends State<EditorPage> {
     try {
       final doc = controller.document;
       final images = controller.resolvedImages();
-      final List<int> bytes;
+      final Uint8List bytes;
       switch (format) {
         case ExportFormat.pdf:
           bytes = await PdfExporter.build(doc, images);
@@ -70,15 +71,13 @@ class _EditorPageState extends State<EditorPage> {
         case ExportFormat.jpeg:
           bytes = await RasterExporter.jpeg(doc, images, dpi: 300);
       }
-      final location = await getSaveLocation(
-        acceptedTypeGroups: [
-          XTypeGroup(label: formatName, extensions: [format.fileExtension]),
-        ],
+      final savedTo = await saveExport(
+        bytes: bytes,
         suggestedName: format.defaultName,
+        fileExtension: format.fileExtension,
       );
-      if (location == null) return;
-      await File(location.path).writeAsBytes(bytes);
-      _snack(l10n.savedTo(formatName, location.path));
+      if (savedTo == null) return;
+      _snack(l10n.savedTo(formatName, savedTo));
     } catch (e) {
       _snack(l10n.exportFailed(formatName, '$e'));
     } finally {

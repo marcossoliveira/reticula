@@ -12,6 +12,8 @@ print sheets. It is built with Flutter/Dart.
 Made by [Marcos Oliveira](https://github.com/marcossoliveira) ·
 Repository: <https://github.com/marcossoliveira/reticula>
 
+**Try the web app (early alpha):** <https://project-reticula.web.app>
+
 ## What is Reticula?
 
 Reticula helps you arrange photos on real paper formats (like A4) and export a
@@ -95,6 +97,7 @@ so it is testable and reusable.
 | Platform | Status |
 |----------|--------|
 | macOS    | Runs; primary development target |
+| Web      | Live demo (experimental): <https://project-reticula.web.app> |
 | Windows  | Builds in CI — **experimental**, not extensively tested |
 | Linux    | Builds in CI — **experimental**, not extensively tested |
 | Android  | Planned — not built yet |
@@ -109,7 +112,7 @@ Prerequisites: [Flutter](https://docs.flutter.dev/get-started/install)
 git clone https://github.com/marcossoliveira/reticula.git
 cd reticula
 flutter pub get
-flutter run -d macos      # or: -d windows, -d linux
+flutter run -d macos      # or: -d windows, -d linux, -d chrome
 ```
 
 ### Tests & analysis
@@ -128,14 +131,14 @@ dart run tool/sample_export.dart /output/dir
 ## Building
 
 ```bash
-flutter build macos       # or: windows, linux
+flutter build macos       # or: windows, linux, web
 ```
 
 Continuous integration ([`.github/workflows/build.yml`](.github/workflows/build.yml))
-builds macOS, Windows and Linux on every push and pull request, uploading each as
-an artifact. Pushing a tag like `v0.1.0-alpha` additionally publishes a GitHub
-Release with the three builds attached. To regenerate app icons:
-`dart run flutter_launcher_icons`.
+builds macOS, Windows, Linux and Web on every push and pull request, uploading
+each as an artifact. Pushing a tag like `v0.1.0-alpha` additionally publishes a
+GitHub Release with the desktop builds attached and deploys the web app to
+Firebase Hosting. To regenerate app icons: `dart run flutter_launcher_icons`.
 
 ## Printing tip
 

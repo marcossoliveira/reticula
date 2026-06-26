@@ -1,11 +1,11 @@
 {
-    "name": "reticula_app",
-    "short_name": "reticula_app",
+    "name": "Reticula",
+    "short_name": "Reticula",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#FBFBFE",
+    "theme_color": "#122A4A",
+    "description": "Free and open source photo layout software for real print sheets.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

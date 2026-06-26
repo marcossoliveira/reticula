@@ -26,11 +26,12 @@ Checked items are implemented today; unchecked items are planned.
 - [ ] Drag-and-drop image import
 - [ ] Basic print guidance / system print dialog
 
-## 0.3.0-alpha — Cross-platform desktop
+## 0.3.0-alpha — Cross-platform desktop & web
 
 - [x] Windows build (CI, experimental)
 - [x] Linux build (CI, experimental)
 - [x] macOS build
+- [x] Web build + live demo on Firebase Hosting (experimental)
 - [x] GitHub Releases artifacts
 - [ ] Broader real-world testing on each platform
 
