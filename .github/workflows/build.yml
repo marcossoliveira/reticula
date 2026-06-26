@@ -1,0 +1,116 @@
+name: build
+
+on:
+  push:
+    branches: [main, master]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+env:
+  FLUTTER_VERSION: '3.44.4'
+
+jobs:
+  test:
+    name: Analyze & test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - run: flutter analyze
+      - run: flutter test
+
+  macos:
+    name: Build macOS
+    needs: test
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - run: flutter config --enable-macos-desktop
+      - run: flutter build macos --release
+      - name: Package .app into a zip
+        run: ditto -c -k --keepParent build/macos/Build/Products/Release/Reticula.app Reticula-macos.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Reticula-macos
+          path: Reticula-macos.zip
+
+  windows:
+    name: Build Windows
+    needs: test
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - run: flutter config --enable-windows-desktop
+      - run: flutter build windows --release
+      - name: Package into a zip
+        shell: pwsh
+        run: Compress-Archive -Path build/windows/x64/runner/Release/* -DestinationPath Reticula-windows-x64.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Reticula-windows
+          path: Reticula-windows-x64.zip
+
+  linux:
+    name: Build Linux
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Linux build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - run: flutter config --enable-linux-desktop
+      - run: flutter build linux --release
+      - name: Package bundle into a tarball
+        run: tar -czf Reticula-linux-x64.tar.gz -C build/linux/x64/release/bundle .
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Reticula-linux
+          path: Reticula-linux-x64.tar.gz
+
+  # On a tag push (vX.Y.Z), attach the three builds to a GitHub Release.
+  release:
+    name: Release
+    needs: [macos, windows, linux]
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download all build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: |
+            artifacts/Reticula-macos/Reticula-macos.zip
+            artifacts/Reticula-windows/Reticula-windows-x64.zip
+            artifacts/Reticula-linux/Reticula-linux-x64.tar.gz
