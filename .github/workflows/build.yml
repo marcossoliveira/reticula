@@ -93,6 +93,25 @@ jobs:
           name: Reticula-linux
           path: Reticula-linux-x64.tar.gz
 
+  web:
+    name: Build Web
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - run: flutter config --enable-web
+      - run: flutter build web --release
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Reticula-web
+          path: build/web
+
   # On a tag push (vX.Y.Z), attach the three builds to a GitHub Release.
   release:
     name: Release
@@ -114,3 +133,26 @@ jobs:
             artifacts/Reticula-macos/Reticula-macos.zip
             artifacts/Reticula-windows/Reticula-windows-x64.zip
             artifacts/Reticula-linux/Reticula-linux-x64.tar.gz
+
+  # On a tag push (vX.Y.Z), deploy the web build to Firebase Hosting.
+  # Requires the FIREBASE_SERVICE_ACCOUNT_PROJECT_RETICULA repository secret
+  # (created by `firebase init hosting:github`).
+  deploy-web:
+    name: Deploy web (Firebase Hosting)
+    needs: web
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download web build
+        uses: actions/download-artifact@v4
+        with:
+          name: Reticula-web
+          path: build/web
+      - name: Deploy to Firebase Hosting
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_PROJECT_RETICULA }}
+          projectId: project-reticula
+          channelId: live

@@ -8,6 +8,14 @@ Reticula is in early alpha; it will aim to follow
 
 ## [Unreleased]
 
+### Added
+
+- Web build — Reticula now runs in the browser (experimental), with a live demo
+  on Firebase Hosting: <https://project-reticula.web.app>. On the web, exports are
+  downloaded by the browser instead of using a native save dialog.
+- CI now also builds the web app, and deploys it to Firebase Hosting on tagged
+  releases.
+
 ## [0.1.0-alpha]
 
 First public alpha.
