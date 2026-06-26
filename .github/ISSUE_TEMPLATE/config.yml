@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Questions & ideas
+    url: https://github.com/marcossoliveira/reticula/discussions
+    about: Ask questions, share ideas, or get help. For bugs and feature requests, please use the issue templates.

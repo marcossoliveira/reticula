@@ -1,73 +1,77 @@
 # Reticula
 
-**Reticula** is an open-source suite of photo tools. The first (and currently
-only) tool is **Print Layout**: arrange photos on real-size sheets for precise,
-physically accurate printing.
+**Reticula** is a free and open source app for creating photo layouts on real
+print sheets. It is built with Flutter/Dart.
 
-> Reticula helps people organize photos onto A4, A5 and other sheets with exact
-> control over size, margins and framing, producing print-ready files.
+> ⚠️ **Status: early alpha.** Reticula is usable but young. Expect missing
+> features, rough edges, and changes between versions.
+
+[![build](https://github.com/marcossoliveira/reticula/actions/workflows/build.yml/badge.svg)](https://github.com/marcossoliveira/reticula/actions/workflows/build.yml)
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
 
 Made by [Marcos Oliveira](https://github.com/marcossoliveira) ·
 Repository: <https://github.com/marcossoliveira/reticula>
 
-[![build](https://github.com/marcossoliveira/reticula/actions/workflows/build.yml/badge.svg)](https://github.com/marcossoliveira/reticula/actions/workflows/build.yml)
+## What is Reticula?
 
-## Tools
+Reticula helps you arrange photos on real paper formats (like A4) and export a
+print-ready file at the correct physical size. The page is the source of truth:
+everything is measured in millimetres, so what you export matches what you print.
 
-| Tool | Status |
-|------|--------|
-| **Print Layout** — arrange photos on real sheets for precise printing | ✅ Available |
-| Social Collage — collages sized for social networks | 🔜 Coming soon |
-| Cards & Invitations | 🔜 Coming soon |
-| Photo Calendar | 🔜 Coming soon |
-| Photo Book | 🔜 Coming soon |
-| Labels & Stickers | 🔜 Coming soon |
+### The problem it solves
 
-The app opens on a launcher screen with a card per tool; only Print Layout is
-active today.
+Printing photos at a precise size, with no margins and controlled framing, is
+fiddly with generic tools — office suites resize unpredictably, and photo apps
+rarely think in real paper dimensions. Reticula keeps the layout physically
+accurate from screen to paper.
 
-## Print Layout
+## Project status
 
-Arrange photos on a sheet, frame each one (pan / zoom / crop), and export to a
-print-ready file at real physical size.
+Reticula is in **early alpha**. The desktop app runs and exports correctly, but
+it is still small and evolving. It is the first tool of a planned small suite of
+photo utilities; only **Print Layout** exists today.
+
+## Current MVP — Print Layout
+
+Arrange photos on a sheet, frame each one, and export a print-ready file.
+
+### Implemented features
 
 - **Paper sizes:** A3, A4, A5, A6, Letter, Legal, 10 × 15 cm, 13 × 18 cm.
 - **Orientation:** portrait or landscape.
-- **Grids:** 1, 2 (side-by-side or stacked), 4, 6, 8, 9, 12 equal cells that
-  tile the sheet edge-to-edge with no margin.
-- **Framing:** each cell is a window/mask; drag to reposition, scroll/pinch to
-  zoom, double-click to reset. The image always fills its cell (cover), never
-  leaking past it.
-- **Export:** PDF, PNG (300 DPI) and JPEG (300 DPI).
+- **Grids:** 1, 2 (side-by-side or stacked), 4, 6, 8, 9, 12 equal cells that tile
+  the sheet edge-to-edge with no margin.
+- **Framing:** each cell is a window/mask — drag to reposition, scroll/pinch to
+  zoom, double-click to reset. The image fills its cell (cover) and is clipped to
+  it, so nothing leaks past the cell.
+- **Export:** PDF, PNG (300 DPI) and JPEG (300 DPI), computed from the model
+  (not a screenshot). PNG/JPEG are rasterized from the same PDF.
+- **Localization:** English, Português (Brasil), Español, Italiano, Deutsch,
+  日本語, 中文 — follows the system language, with an in-app switcher.
 
 Example: A4 landscape + a 2×1 grid = two A5-portrait photos side by side, no
 margin (A4 landscape @ 300 DPI ≈ 3508 × 2480 px).
 
-## Languages
+### Planned / not yet implemented
 
-The UI is fully localized and follows the system language, with an in-app
-switcher: **English, Português (Brasil), Español, Italiano, Deutsch, 日本語,
-中文**.
+These are **planned** and not available yet:
 
-## Principle
+- Save / open projects (`.reticula` files) — *planned*
+- Drag-and-drop image import — *planned*
+- System print dialog — *planned*
+- Margins, gutters and cut guides — *planned*
+- The other suite tools (Social Collage, Cards, Calendar, Photo Book, Labels)
+  shown as "coming soon" in the app — *planned*
+- Android and iOS builds — *planned*
 
-The UI is never the source of truth. The source of truth is a **document model**
-in physical units (millimetres). The screen is only a preview/editor; exports are
-computed from the model, never captured from the screen.
+See [ROADMAP.md](ROADMAP.md) for the bigger picture and
+[CHANGELOG.md](CHANGELOG.md) for what changed.
 
-A single layout engine (in mm) is shared by three renderers, each converting
-mm into its own unit:
+## Screenshots
 
-| Renderer | Unit | Conversion |
-|----------|------|-----------|
-| Preview  | screen pixels      | mm × px/mm      |
-| PDF      | points (pt)        | mm × 72 / 25.4  |
-| PNG/JPEG | pixels at real DPI | mm / 25.4 × DPI |
+Screenshots will be added soon.
 
-PNG and JPEG are rasterized from the *same* PDF, so all outputs share one layout
-and the size is derived from physical dimensions, not the window size.
-
-## Stack
+## Tech stack
 
 - Flutter / Dart
 - [`pdf`](https://pub.dev/packages/pdf) — physical-size PDF generation
@@ -76,74 +80,31 @@ and the size is derived from physical dimensions, not the window size.
 - [`file_selector`](https://pub.dev/packages/file_selector) — native open/save dialogs
 - [`url_launcher`](https://pub.dev/packages/url_launcher) — open repository / author links
 - `flutter_localizations` + `intl` — localization
-- State: `ChangeNotifier`
+- State management: `ChangeNotifier`
+
+The core (document model + layout math) is pure Dart with no Flutter dependency,
+so it is testable and reusable.
 
 ## Platforms
 
 | Platform | Status |
 |----------|--------|
-| macOS | ✅ built & tested |
-| Windows | ✅ built in CI |
-| Linux | ✅ built in CI |
-| Android / iOS | planned |
+| macOS    | Runs; primary development target |
+| Windows  | Builds in CI — **experimental**, not extensively tested |
+| Linux    | Builds in CI — **experimental**, not extensively tested |
+| Android  | Planned — not built yet |
+| iOS      | Planned — not built yet |
 
-## Project structure
+## Running locally
 
-```txt
-reticula/                    # repository root = the Flutter app
-  .github/workflows/build.yml # CI: build macOS / Windows / Linux
-  l10n.yaml
-  assets/icon/                # app icon source
-  lib/
-    main.dart
-    l10n/                     # ARB files (7 languages) + generated localizations
-    src/
-      core/                   # pure Dart, no Flutter — the source of truth
-        units.dart            # mm / pt / px conversions
-        geometry.dart         # RectMm, SizeMm, PixelSize
-        document.dart         # ReticulaDocument, PageSpec, orientation
-        slot.dart             # PhotoSlot
-        placed_image.dart     # PlacedImage, CropMode
-        layout_engine.dart    # crop/framing math (cover/contain/clamp)
-        paper.dart            # paper-size catalog
-        grid.dart             # grid options
-        document_builder.dart # build a document from paper × orientation × grid
-      export/                 # depends only on core
-        resolved_image.dart
-        export_format.dart    # PDF / PNG / JPEG
-        pdf_exporter.dart
-        raster_exporter.dart  # PNG/JPEG from the rendered PDF
-      ui/                     # editor + launcher (depends on core + export)
-        theme.dart
-        home_screen.dart      # tool launcher, language switcher, credits
-        document_controller.dart
-        editor_page.dart
-        widgets/
-          sheet_preview.dart
-          slot_view.dart
-  tool/
-    sample_export.dart        # dev tool: render a sample PDF from the model
-  test/                       # unit + widget tests
-  macos/ windows/ linux/ android/ ios/ web/
-```
-
-`core/` and `export/` are pure Dart / UI-free, ready to be extracted as
-standalone packages.
-
-## Running on macOS
-
-Prerequisites: [Flutter](https://docs.flutter.dev/get-started/install/macos)
-(stable channel) and Xcode command-line tools. Check with `flutter doctor`.
+Prerequisites: [Flutter](https://docs.flutter.dev/get-started/install)
+(stable channel). Check your setup with `flutter doctor`.
 
 ```bash
+git clone https://github.com/marcossoliveira/reticula.git
+cd reticula
 flutter pub get
-flutter run -d macos
-```
-
-Build a release (`macos`, `windows` or `linux`):
-
-```bash
-flutter build macos
+flutter run -d macos      # or: -d windows, -d linux
 ```
 
 ### Tests & analysis
@@ -153,37 +114,23 @@ flutter test
 flutter analyze
 ```
 
-### Regenerate app icons
-
-```bash
-dart run flutter_launcher_icons
-```
-
-### Render a sample PDF (no GUI)
+### Render a sample PDF without the GUI
 
 ```bash
 dart run tool/sample_export.dart /output/dir
 ```
 
-## Continuous integration
-
-[`.github/workflows/build.yml`](.github/workflows/build.yml) runs on every push
-and pull request:
-
-- **test** — `flutter analyze` + `flutter test`
-- **macos / windows / linux** — `flutter build` per platform, uploading each app
-  as a build artifact (`Reticula-macos.zip`, `Reticula-windows-x64.zip`,
-  `Reticula-linux-x64.tar.gz`).
-
-Pushing a tag like `v1.0.0` additionally publishes a **GitHub Release** with the
-three builds attached:
+## Building
 
 ```bash
-git tag v1.0.0
-git push origin v1.0.0
+flutter build macos       # or: windows, linux
 ```
 
-Flutter is pinned to a fixed version for reproducible builds.
+Continuous integration ([`.github/workflows/build.yml`](.github/workflows/build.yml))
+builds macOS, Windows and Linux on every push and pull request, uploading each as
+an artifact. Pushing a tag like `v0.1.0-alpha` additionally publishes a GitHub
+Release with the three builds attached. To regenerate app icons:
+`dart run flutter_launcher_icons`.
 
 ## Printing tip
 
@@ -194,21 +141,21 @@ your printer and driver. When printing, use:
 - Fit to page: **off**
 - Borderless: **on**, if your printer supports it
 
-## Roadmap
+## Contributing
 
-- [x] Suite launcher with tool cards
-- [x] Print Layout: paper sizes, orientation, grids
-- [x] Framing (pan / zoom / crop) with cover clamping
-- [x] Export PDF / PNG / JPEG at 300 DPI
-- [x] Localization (7 languages)
-- [x] App icon & branding
-- [x] CI builds for macOS / Windows / Linux
-- [ ] Save / open a project (`.reticula`)
-- [ ] Drag-and-drop image import
-- [ ] System print dialog
-- [ ] More tools (Social Collage, etc.)
+Contributions are very welcome — code, design, docs, translations, bug reports,
+and especially **real-world print testing**. See [CONTRIBUTING.md](CONTRIBUTING.md)
+to get started, and please follow our [Code of Conduct](CODE_OF_CONDUCT.md).
 
 ## License
 
-To be defined (open source). Candidates under consideration: GPL-3.0, AGPL-3.0,
-MPL-2.0, Apache-2.0, MIT.
+Reticula is licensed under the GNU General Public License v3.0.
+
+See the [LICENSE](LICENSE) file for the full text.
+
+Copyright © 2026 Marcos Oliveira.
+
+## Roadmap
+
+A short roadmap lives in [ROADMAP.md](ROADMAP.md). It describes direction only —
+no dates are promised.
